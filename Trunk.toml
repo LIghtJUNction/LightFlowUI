@@ -1,0 +1,12 @@
+[build]
+target = "index.html"
+dist = "dist"
+public_url = "/LightFlowUI/"
+
+[serve]
+addresses = ["127.0.0.1"]
+port = 5174
+open = false
+
+[watch]
+watch = ["src", "web", "protocol", "index.html", "Cargo.toml"]
