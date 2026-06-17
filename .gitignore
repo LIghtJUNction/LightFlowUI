@@ -1,4 +1,7 @@
 dist/
 target/
 .trunk/
+node_modules/
+.next/
+out/
 *.log
