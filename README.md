@@ -1,21 +1,61 @@
 # LightFlowUI
 
-Frontend development is paused.
+LightFlowUI is a small backend-backed editor client for LightFlow. It treats
+the Rust workflow crates and the HTTP API as the source of truth.
 
-This repository is intentionally reset to an empty placeholder. The previous Rust/WASM workflow canvas was removed because the frontend should not drive the product shape before the backend API is stable.
+## Run
 
-Next frontend work should start from the backend API contract, not from this old implementation.
+Start the backend from the LightFlow repository root:
 
-## Current Scope
+```bash
+cargo run --bin lfw -- serve --port 5174
+```
 
-- Keep this repository minimal.
-- Do not add UI behavior until the LightFlow backend API is designed.
-- Treat backend workflow, asset, run, and API contracts as the source of truth.
-- Reinitialize the frontend stack later when there is a concrete API surface to build against.
+Open `http://127.0.0.1:5174/ui` in a browser. Opening `index.html` directly
+also works when you want a file-backed fallback. The API base defaults to
+`http://127.0.0.1:5174` and can be changed in the header.
 
-## Reinitialization Checklist
+Check the API contract used by the static client:
 
-1. Define the backend API contract first.
-2. Decide the frontend runtime and framework from the API needs.
-3. Add only the minimal scaffold needed to verify one backend-backed workflow.
-4. Add generated clients or shared schemas after the backend contract is stable.
+```bash
+node smoke.mjs http://127.0.0.1:5174 lightflow.text_plan
+```
+
+## Scope
+
+- Node catalog and node detail from `/nodes`.
+- Read-only workflow graph nodes and edges from `/workflows/{workflow_id}`.
+- Executor registry status from `/executors`, including availability reasons,
+  data policies, capability coverage, and model-planning flags.
+- Runtime plan preview from `/workflows/{workflow_id}/plan`.
+- Filtered model catalog and lock status from `/models`, including variants,
+  hashes, local paths, missing paths, and sync/verify commands.
+- Filtered run history, timeline traces, node runtime details, replay drift,
+  run deletion, trace-to-artifact navigation, and filtered artifact inspection
+  from `/runs` and `/artifacts`.
+- Replay evidence and warning rows link directly to run traces, even when the
+  current run list is filtered.
+- Replay actions clear run filters and focus the newly recorded replay trace.
+- Runtime run forms generated from Node Schema metadata, with selected-workflow
+  patch preflight before execution.
+- Temporary enabled/disabled node lists and patch JSON passed through the HTTP
+  run contract.
+- Patch registry list/load/validate/save/delete from `/patches`, with
+  readable validation results and registered patches expanded into run patch
+  JSON before execution.
+- Patch drafts are validated against the selected workflow before being handed
+  into its run form for a non-destructive patched run.
+- Project and selected-workflow readiness from `/loop` and
+  `/workflows/{workflow_id}/loop`, including strict replay-evidence checks.
+- Source change safety from `/loop/changes`, including aggregate counts and
+  blockers for workflow edits that need colocated agent skill updates before
+  review or publish.
+- Dependency-ordered workspace and selected-workflow publish preflight from
+  `/publish` and `/workflows/{workflow_id}/publish`, including copyable dry-run
+  commands.
+- Project and selected-workflow release gate planning from `/release`, including
+  required artifacts, document sections, source-change review, and copyable
+  command gates without executing them.
+
+The editor does not store a separate workflow format. Write support should stay
+behind backend contracts and reviewable Rust source changes.

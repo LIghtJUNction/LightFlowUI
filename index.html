@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LightFlow</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">LF</div>
+          <div>
+            <h1>LightFlow</h1>
+            <p id="statusText">Disconnected</p>
+          </div>
+        </div>
+        <form id="connectionForm" class="connection-form">
+          <label for="apiBase">API</label>
+          <input id="apiBase" name="apiBase" value="http://127.0.0.1:5174" spellcheck="false">
+          <button type="submit">Refresh</button>
+        </form>
+      </header>
+
+      <main class="workspace">
+        <aside class="sidebar" aria-label="Node catalog">
+          <div class="toolbar">
+            <input id="nodeFilter" placeholder="Filter nodes" spellcheck="false">
+            <select id="categoryFilter" aria-label="Category"></select>
+          </div>
+          <div id="nodeList" class="node-list"></div>
+        </aside>
+
+        <section class="detail-pane" aria-label="Node detail">
+          <nav class="tabs" aria-label="Views">
+            <button class="tab is-active" data-tab="node" type="button">Node</button>
+            <button class="tab" data-tab="executors" type="button">Executors</button>
+            <button class="tab" data-tab="models" type="button">Models</button>
+            <button class="tab" data-tab="runs" type="button">Runs</button>
+            <button class="tab" data-tab="patches" type="button">Patches</button>
+            <button class="tab" data-tab="artifacts" type="button">Artifacts</button>
+            <button class="tab" data-tab="loop" type="button">Loop</button>
+          </nav>
+
+          <section id="nodeView" class="view is-active">
+            <div id="nodeDetail" class="detail-grid"></div>
+          </section>
+
+          <section id="executorsView" class="view">
+            <div id="executorList"></div>
+          </section>
+
+          <section id="modelsView" class="view">
+            <form id="modelFilterForm" class="model-filter">
+              <label>
+                Workflow
+                <input id="modelWorkflowFilter" name="workflow" placeholder="workflow id" spellcheck="false">
+              </label>
+              <label>
+                Status
+                <select id="modelStatusFilter" name="status">
+                  <option value="all">All</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="available">Available</option>
+                </select>
+              </label>
+              <button type="submit">Apply</button>
+              <button id="modelFilterReset" type="button">Reset</button>
+            </form>
+            <div id="modelList" class="table-wrap"></div>
+          </section>
+
+          <section id="runsView" class="view">
+            <form id="runFilterForm" class="run-filter">
+              <label>
+                Workflow
+                <input id="runWorkflowFilter" name="workflow" placeholder="workflow id" spellcheck="false">
+              </label>
+              <label>
+                Status
+                <select id="runStatusFilter" name="status">
+                  <option value="">All</option>
+                  <option value="completed">Completed</option>
+                  <option value="failed">Failed</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </label>
+              <label>
+                Limit
+                <input id="runLimitFilter" name="limit" inputmode="numeric" value="100">
+              </label>
+              <button type="submit">Apply</button>
+              <button id="runFilterReset" type="button">Reset</button>
+            </form>
+            <div class="split">
+              <div id="runList" class="run-list"></div>
+              <div id="runDetail" class="run-detail"></div>
+            </div>
+          </section>
+
+          <section id="patchesView" class="view">
+            <div class="split">
+              <div id="patchList" class="run-list"></div>
+              <div id="patchDetail" class="run-detail"></div>
+            </div>
+          </section>
+
+          <section id="artifactsView" class="view">
+            <form id="artifactFilterForm" class="artifact-filter">
+              <label>
+                Run
+                <input id="artifactRunFilter" name="run" placeholder="last or run id" spellcheck="false">
+              </label>
+              <label>
+                Workflow
+                <input id="artifactWorkflowFilter" name="workflow" placeholder="workflow id" spellcheck="false">
+              </label>
+              <label>
+                Kind
+                <input id="artifactKindFilter" name="kind" placeholder="image, mask" spellcheck="false">
+              </label>
+              <label>
+                Limit
+                <input id="artifactLimitFilter" name="limit" inputmode="numeric" value="100">
+              </label>
+              <button type="submit">Apply</button>
+              <button id="artifactFilterReset" type="button">Reset</button>
+            </form>
+            <div id="artifactList" class="table-wrap"></div>
+          </section>
+
+          <section id="loopView" class="view">
+            <div id="loopDetail" class="detail-stack"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <template id="emptyTemplate">
+      <div class="empty-state">
+        <h2>No Data</h2>
+        <p>Start the backend and refresh.</p>
+      </div>
+    </template>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
