@@ -1,176 +1,149 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="LightFlow Rust/WASM workflow cockpit." />
-    <title>LightFlowUI</title>
-    <link data-trunk rel="rust" href="Cargo.toml" data-bin="lightflow-ui" />
-    <link data-trunk rel="copy-dir" href="web" />
-    <style>
-      :root {
-        color-scheme: dark;
-        font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          "Segoe UI", sans-serif;
-        background: #060a12;
-        color: #e7eeff;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        background:
-          radial-gradient(circle at 18% 8%, rgba(112, 86, 255, 0.22), transparent 34%),
-          radial-gradient(circle at 82% 14%, rgba(30, 221, 214, 0.16), transparent 34%),
-          linear-gradient(135deg, #060a12 0%, #09111f 42%, #050814 100%);
-      }
-
-      #lightflow-canvas {
-        width: 100vw;
-        height: 100vh;
-        display: block;
-        outline: none;
-      }
-
-      #lightflow-plugin-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 5;
-        pointer-events: none;
-      }
-
-      #lightflow-plugin-overlay > * {
-        pointer-events: auto;
-      }
-
-      #lightflow-loading {
-        position: fixed;
-        inset: 0;
-        z-index: 10;
-        display: grid;
-        place-items: center;
-        background: rgba(6, 10, 18, 0.94);
-        transition:
-          opacity 180ms ease,
-          visibility 180ms ease;
-      }
-
-      #lightflow-loading.hidden {
-        opacity: 0;
-        visibility: hidden;
-      }
-
-      .loader {
-        min-width: 260px;
-        padding: 20px 22px;
-        border: 1px solid rgba(132, 158, 205, 0.28);
-        border-radius: 16px;
-        background: rgba(12, 18, 32, 0.9);
-        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
-      }
-
-      .loader strong {
-        display: block;
-        margin-bottom: 7px;
-        font-size: 18px;
-        letter-spacing: -0.03em;
-      }
-
-      .loader span {
-        color: #8e9db8;
-        font-size: 13px;
-      }
-
-      #lightflow-error {
-        position: fixed;
-        left: 22px;
-        right: 22px;
-        bottom: 22px;
-        z-index: 20;
-        display: none;
-        padding: 16px 18px;
-        border: 1px solid rgba(255, 90, 120, 0.55);
-        border-radius: 14px;
-        color: #ffdbe2;
-        background: rgba(40, 8, 18, 0.94);
-        font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
-        white-space: pre-wrap;
-      }
-    </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LightFlow</title>
+    <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
-    <canvas id="lightflow-canvas"></canvas>
-    <div id="lightflow-plugin-overlay" aria-hidden="true"></div>
-    <div id="lightflow-loading">
-      <div class="loader">
-        <strong>LightFlowUI</strong>
-        <span id="lightflow-loading-step">Loading Rust/WASM</span>
-      </div>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">LF</div>
+          <div>
+            <h1>LightFlow</h1>
+            <p id="statusText">Disconnected</p>
+          </div>
+        </div>
+        <form id="connectionForm" class="connection-form">
+          <label for="apiBase">API</label>
+          <input id="apiBase" name="apiBase" value="http://127.0.0.1:5174" spellcheck="false">
+          <button type="submit">Refresh</button>
+        </form>
+      </header>
+
+      <main class="workspace">
+        <aside class="sidebar" aria-label="Node catalog">
+          <div class="toolbar">
+            <input id="nodeFilter" placeholder="Filter nodes" spellcheck="false">
+            <select id="categoryFilter" aria-label="Category"></select>
+          </div>
+          <div id="nodeList" class="node-list"></div>
+        </aside>
+
+        <section class="detail-pane" aria-label="Node detail">
+          <nav class="tabs" aria-label="Views">
+            <button class="tab is-active" data-tab="node" type="button">Node</button>
+            <button class="tab" data-tab="executors" type="button">Executors</button>
+            <button class="tab" data-tab="models" type="button">Models</button>
+            <button class="tab" data-tab="runs" type="button">Runs</button>
+            <button class="tab" data-tab="patches" type="button">Patches</button>
+            <button class="tab" data-tab="artifacts" type="button">Artifacts</button>
+            <button class="tab" data-tab="loop" type="button">Loop</button>
+          </nav>
+
+          <section id="nodeView" class="view is-active">
+            <div id="nodeDetail" class="detail-grid"></div>
+          </section>
+
+          <section id="executorsView" class="view">
+            <div id="executorList"></div>
+          </section>
+
+          <section id="modelsView" class="view">
+            <form id="modelFilterForm" class="model-filter">
+              <label>
+                Workflow
+                <input id="modelWorkflowFilter" name="workflow" placeholder="workflow id" spellcheck="false">
+              </label>
+              <label>
+                Status
+                <select id="modelStatusFilter" name="status">
+                  <option value="all">All</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="available">Available</option>
+                </select>
+              </label>
+              <button type="submit">Apply</button>
+              <button id="modelFilterReset" type="button">Reset</button>
+            </form>
+            <div id="modelList" class="table-wrap"></div>
+          </section>
+
+          <section id="runsView" class="view">
+            <form id="runFilterForm" class="run-filter">
+              <label>
+                Workflow
+                <input id="runWorkflowFilter" name="workflow" placeholder="workflow id" spellcheck="false">
+              </label>
+              <label>
+                Status
+                <select id="runStatusFilter" name="status">
+                  <option value="">All</option>
+                  <option value="completed">Completed</option>
+                  <option value="failed">Failed</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </label>
+              <label>
+                Limit
+                <input id="runLimitFilter" name="limit" inputmode="numeric" value="100">
+              </label>
+              <button type="submit">Apply</button>
+              <button id="runFilterReset" type="button">Reset</button>
+            </form>
+            <div class="split">
+              <div id="runList" class="run-list"></div>
+              <div id="runDetail" class="run-detail"></div>
+            </div>
+          </section>
+
+          <section id="patchesView" class="view">
+            <div class="split">
+              <div id="patchList" class="run-list"></div>
+              <div id="patchDetail" class="run-detail"></div>
+            </div>
+          </section>
+
+          <section id="artifactsView" class="view">
+            <form id="artifactFilterForm" class="artifact-filter">
+              <label>
+                Run
+                <input id="artifactRunFilter" name="run" placeholder="last or run id" spellcheck="false">
+              </label>
+              <label>
+                Workflow
+                <input id="artifactWorkflowFilter" name="workflow" placeholder="workflow id" spellcheck="false">
+              </label>
+              <label>
+                Kind
+                <input id="artifactKindFilter" name="kind" placeholder="image, mask" spellcheck="false">
+              </label>
+              <label>
+                Limit
+                <input id="artifactLimitFilter" name="limit" inputmode="numeric" value="100">
+              </label>
+              <button type="submit">Apply</button>
+              <button id="artifactFilterReset" type="button">Reset</button>
+            </form>
+            <div id="artifactList" class="table-wrap"></div>
+          </section>
+
+          <section id="loopView" class="view">
+            <div id="loopDetail" class="detail-stack"></div>
+          </section>
+        </section>
+      </main>
     </div>
-    <div id="lightflow-error" role="alert"></div>
-    <script>
-      const loading = document.getElementById("lightflow-loading");
-      const loadingStep = document.getElementById("lightflow-loading-step");
-      const errorBox = document.getElementById("lightflow-error");
-      const diagnostics = {
-        js: "loaded",
-        wasm: "pending",
-      };
 
-      function diagnosticSafe(value) {
-        return String(value).replace(/[^a-zA-Z0-9 _:\n=-]/g, "_");
-      }
+    <template id="emptyTemplate">
+      <div class="empty-state">
+        <h2>No Data</h2>
+        <p>Start the backend and refresh.</p>
+      </div>
+    </template>
 
-      function reportDiag(kind, detail = "") {
-        const body = [
-          `KIND=${diagnosticSafe(kind)}`,
-          `JS=${diagnostics.js}`,
-          `WASM=${diagnosticSafe(diagnostics.wasm)}`,
-          `DETAIL=${diagnosticSafe(detail)}`,
-        ].join("\n");
-        try {
-          fetch("/__lightflow_diag", {
-            method: "POST",
-            headers: { "content-type": "text/plain" },
-            body,
-            keepalive: true,
-          });
-        } catch (_ignored) {}
-      }
-
-      window.__lightflow_step = (step) => {
-        diagnostics.wasm = step;
-        loadingStep.textContent = step;
-        if (step === "web runner started" || step === "app new: done") {
-          loading.classList.add("hidden");
-        }
-        reportDiag("wasm_step", step);
-      };
-
-      window.__lightflow_report_rust_error = (message) => {
-        diagnostics.wasm = "error";
-        errorBox.style.display = "block";
-        errorBox.textContent = message;
-        loading.classList.add("hidden");
-        reportDiag("rust_error", message);
-      };
-
-      window.addEventListener("error", (event) => {
-        errorBox.style.display = "block";
-        errorBox.textContent = event.message || "Browser startup error";
-        loading.classList.add("hidden");
-        reportDiag("browser_error", event.message || "");
-      });
-
-      reportDiag("dom_ready");
-    </script>
+    <script src="./app.js" type="module"></script>
   </body>
 </html>
