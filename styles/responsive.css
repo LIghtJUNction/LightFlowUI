@@ -1,0 +1,52 @@
+@media (max-width: 960px) {
+  .workspace,
+  .detail-grid,
+  .split {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    max-height: 46vh;
+  }
+
+  .meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .artifact-filter,
+  .run-filter,
+  .model-filter {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar,
+  .connection-form {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    display: grid;
+  }
+
+  .toolbar,
+  .artifact-filter,
+  .run-filter,
+  .model-filter,
+  .command-row,
+  .port-row,
+  .kv-list div {
+    grid-template-columns: 1fr;
+  }
+
+  .tabs {
+    overflow-x: auto;
+  }
+
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
