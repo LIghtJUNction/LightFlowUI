@@ -1,96 +1,22 @@
-const state = {
-  apiBase: localStorage.getItem("lightflow.apiBase") || "http://127.0.0.1:5174",
-  nodes: [],
-  categories: [],
-  executorCatalog: null,
-  executors: [],
-  modelCatalog: null,
-  models: [],
-  runCatalog: null,
-  runs: [],
-  artifacts: [],
-  patches: [],
-  loopReport: null,
-  loopError: "",
-  loopChanges: null,
-  loopChangesError: "",
-  projectWorkspaces: null,
-  projectWorkspacesError: "",
-  publishCatalog: null,
-  publishCatalogError: "",
-  releaseReport: null,
-  releaseError: "",
-  workflows: {},
-  workflowErrors: {},
-  workflowLoading: new Set(),
-  plans: {},
-  planErrors: {},
-  planLoading: new Set(),
-  loopReports: {},
-  loopErrors: {},
-  loopLoading: new Set(),
-  selectedLoopRequireReplay: false,
-  publishChecks: {},
-  publishErrors: {},
-  publishLoading: new Set(),
-  releaseReports: {},
-  releaseErrors: {},
-  releaseLoading: new Set(),
-  selectedNodeId: null,
-  selectedRunId: null,
-  selectedPatchName: "",
-  modelFilters: {
-    workflow: "",
-    status: "all",
-  },
-  runFilters: {
-    workflow: "",
-    status: "",
-    limit: "100",
-  },
-  artifactFilters: {
-    run: "",
-    workflow: "",
-    kind: "",
-    limit: "100",
-  },
-  runPatchDraft: "",
-  patchDraft: '{\n  "nodes": {}\n}',
-};
+import { apiDelete, apiGet, apiPost } from "./api-client.js";
+import { configureLoopView, renderLoop } from "./loop-view.js";
+import { els, state } from "./app-state.js";
+import {
+  badge,
+  el,
+  emptyNode,
+  jsonBlock,
+  kv,
+  metric,
+  option,
+  panel,
+  portList,
+  runtimeList,
+  sectionTitle,
+  table,
+} from "./ui-elements.js";
 
-const els = {
-  statusText: document.querySelector("#statusText"),
-  connectionForm: document.querySelector("#connectionForm"),
-  apiBase: document.querySelector("#apiBase"),
-  nodeFilter: document.querySelector("#nodeFilter"),
-  categoryFilter: document.querySelector("#categoryFilter"),
-  nodeList: document.querySelector("#nodeList"),
-  nodeDetail: document.querySelector("#nodeDetail"),
-  executorList: document.querySelector("#executorList"),
-  modelFilterForm: document.querySelector("#modelFilterForm"),
-  modelWorkflowFilter: document.querySelector("#modelWorkflowFilter"),
-  modelStatusFilter: document.querySelector("#modelStatusFilter"),
-  modelFilterReset: document.querySelector("#modelFilterReset"),
-  modelList: document.querySelector("#modelList"),
-  runFilterForm: document.querySelector("#runFilterForm"),
-  runWorkflowFilter: document.querySelector("#runWorkflowFilter"),
-  runStatusFilter: document.querySelector("#runStatusFilter"),
-  runLimitFilter: document.querySelector("#runLimitFilter"),
-  runFilterReset: document.querySelector("#runFilterReset"),
-  runList: document.querySelector("#runList"),
-  runDetail: document.querySelector("#runDetail"),
-  patchList: document.querySelector("#patchList"),
-  patchDetail: document.querySelector("#patchDetail"),
-  artifactFilterForm: document.querySelector("#artifactFilterForm"),
-  artifactRunFilter: document.querySelector("#artifactRunFilter"),
-  artifactWorkflowFilter: document.querySelector("#artifactWorkflowFilter"),
-  artifactKindFilter: document.querySelector("#artifactKindFilter"),
-  artifactLimitFilter: document.querySelector("#artifactLimitFilter"),
-  artifactFilterReset: document.querySelector("#artifactFilterReset"),
-  artifactList: document.querySelector("#artifactList"),
-  loopDetail: document.querySelector("#loopDetail"),
-  emptyTemplate: document.querySelector("#emptyTemplate"),
-};
+configureLoopView({ linkRunIds });
 
 els.apiBase.value = state.apiBase;
 
@@ -221,34 +147,6 @@ function applyPanelResult(result, valueKey, errorKey) {
   }
   state[valueKey] = null;
   state[errorKey] = result.reason?.message || String(result.reason);
-}
-
-async function apiGet(path) {
-  const response = await fetch(`${state.apiBase}${path}`);
-  return readResponse(response);
-}
-
-async function apiPost(path, body) {
-  const response = await fetch(`${state.apiBase}${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return readResponse(response);
-}
-
-async function apiDelete(path) {
-  const response = await fetch(`${state.apiBase}${path}`, { method: "DELETE" });
-  return readResponse(response);
-}
-
-async function readResponse(response) {
-  const text = await response.text();
-  const body = text ? JSON.parse(text) : {};
-  if (!response.ok) {
-    throw new Error(body.message || body.error || `${response.status} ${response.statusText}`);
-  }
-  return body;
 }
 
 function setStatus(text) {
@@ -1477,44 +1375,7 @@ async function focusArtifacts(filters) {
   await refreshArtifacts();
 }
 
-function renderLoop() {
-  if (state.loopError) {
-    els.loopDetail.replaceChildren(panel("Local Loop", [el("pre", {}, state.loopError)]));
-    return;
-  }
-  if (!state.loopReport) {
-    els.loopDetail.replaceChildren(emptyNode("No loop report"));
-    return;
-  }
-  const children = [loopReportView(state.loopReport, { compact: true })];
-  if (state.loopChanges) {
-    children.push(loopChangesView(state.loopChanges));
-  }
-  if (state.loopChangesError) {
-    children.push(panel("Source Change Safety", [el("pre", {}, state.loopChangesError)]));
-  }
-  if (state.projectWorkspaces) {
-    children.push(projectWorkspacesView(state.projectWorkspaces));
-  }
-  if (state.projectWorkspacesError) {
-    children.push(panel("Project Workspaces", [el("pre", {}, state.projectWorkspacesError)]));
-  }
-  if (state.publishCatalog) {
-    children.push(publishCatalogView(state.publishCatalog));
-  }
-  if (state.publishCatalogError) {
-    children.push(panel("Publish Readiness", [el("pre", {}, state.publishCatalogError)]));
-  }
-  if (state.releaseReport) {
-    children.push(releaseReportView(state.releaseReport));
-  }
-  if (state.releaseError) {
-    children.push(panel("Release Readiness", [el("pre", {}, state.releaseError)]));
-  }
-  els.loopDetail.replaceChildren(el("div", { className: "stack" }, children));
-}
-
-function loopReportView(report, options = {}) {
+) {
   const checks = report.checks || [];
   const failed = report.failed ?? checks.filter((check) => check.status === "failed").length;
   const warning = report.warnings ?? checks.filter((check) => check.status === "warning").length;
@@ -1552,144 +1413,7 @@ function loopReportView(report, options = {}) {
   return panel("Local Workflow Loop", body);
 }
 
-function loopCheckTable(checks) {
-  if (!checks.length) {
-    return emptyNode("No checks");
-  }
-  return table(["Status", "Check", "Message", "Path", "Count"], checks.map((check) => [
-    check.status || "",
-    check.id || "",
-    check.message || "",
-    check.path || "",
-    check.count === undefined ? "" : String(check.count),
-  ]));
-}
-
-function loopChangesView(report) {
-  const changes = report.changed_workflows || [];
-  const failed = report.failed ?? changes.filter((change) => change.status === "failed").length;
-  const warning = report.warnings ?? changes.filter((change) => change.status === "warning").length;
-  const passed = report.passed ?? changes.filter((change) => change.status === "passed").length;
-  return panel("Source Change Safety", [
-    el("div", { className: "inline-list" }, [
-      badge(report.valid ? "ok" : "danger", report.valid ? "valid" : "blocked"),
-      changes.length ? badge(null, `${changes.length} changed workflows`) : badge("ok", "no workflow changes"),
-      passed ? badge("ok", `${passed} passed`) : null,
-      warning ? badge("warn", `${warning} warning`) : null,
-      failed ? badge("danger", `${failed} failed`) : null,
-      report.issues?.length ? badge("warn", `${report.issues.length} issues`) : null,
-      report.blockers?.length ? badge("danger", `${report.blockers.length} blockers`) : null,
-      report.warning_messages?.length ? badge("warn", `${report.warning_messages.length} warnings`) : null,
-    ].filter(Boolean)),
-    report.issues?.length ? list(report.issues) : null,
-    report.blockers?.length ? list(report.blockers) : null,
-    report.warning_messages?.length ? list(report.warning_messages) : null,
-    changes.length
-      ? table(["Status", "Workflow", "Changed", "Message", "Workflow Paths", "Skill Paths", "Patch Paths"], changes.map((change) => [
-        change.status || "",
-        change.workflow_key || "",
-        changeFlags(change),
-        change.message || "",
-        (change.workflow_paths || []).join(", "),
-        (change.skill_paths || []).join(", "),
-        (change.patch_paths || []).join(", "),
-      ]))
-      : emptyNode("No workflow source changes"),
-  ].filter(Boolean));
-}
-
-function changeFlags(change) {
-  return [
-    change.workflow_changed ? "workflow" : "",
-    change.skill_changed ? "skill" : "",
-    change.patch_changed ? "patch" : "",
-  ].filter(Boolean).join(", ");
-}
-
-function projectWorkspacesView(report) {
-  const workspaces = report.workspaces || [];
-  return panel("Project Workspaces", [
-    el("div", { className: "inline-list" }, [
-      badge(report.valid ? "ok" : "warn", report.valid ? "linked" : "incomplete"),
-      badge(null, `${report.linked_count ?? 0}/${report.expected_count ?? 0} linked`),
-      badge(null, `${report.workflow_crate_count ?? 0} workflow crates`),
-      report.missing_count ? badge("warn", `${report.missing_count} missing`) : null,
-      report.not_symlink_count ? badge("warn", `${report.not_symlink_count} not symlink`) : null,
-      report.broken_count ? badge("danger", `${report.broken_count} broken`) : null,
-      report.issues?.length ? badge("warn", `${report.issues.length} issues`) : null,
-    ].filter(Boolean)),
-    el("div", { className: "meta-grid" }, [
-      metric("Projects Dir", report.projects_dir || ""),
-      metric("Present", String(report.present_count ?? workspaces.filter((workspace) => workspace.exists).length)),
-      metric("Expected", String(report.expected_count ?? 0)),
-      metric("Crates", String(report.workflow_crate_count ?? 0)),
-    ]),
-    report.issues?.length ? list(report.issues) : null,
-    workspaces.length
-      ? table(["Status", "Workspace", "Crates", "Path", "Target", "Resolved", "Issues"], workspaces.map((workspace) => [
-        workspaceStatus(workspace),
-        workspace.label || workspace.name || "",
-        String(workspace.workflow_crate_count ?? 0),
-        workspace.path || "",
-        workspace.target || "",
-        workspace.resolved_path || "",
-        (workspace.issues || []).join("; "),
-      ]))
-      : emptyNode("No project workspaces"),
-  ].filter(Boolean));
-}
-
-function workspaceStatus(workspace) {
-  if (workspace.broken) {
-    return "broken";
-  }
-  if (!workspace.exists) {
-    return workspace.expected ? "missing" : "absent";
-  }
-  if (workspace.expected && !workspace.is_symlink) {
-    return "not symlink";
-  }
-  if (workspace.is_symlink) {
-    return "linked";
-  }
-  return workspace.expected ? "present" : "extra";
-}
-
-function publishCatalogView(catalog) {
-  const checks = catalog.checks || [];
-  const total = catalog.total ?? checks.length;
-  const blocked = catalog.blocked_count ?? checks.filter((check) => !check.publishable).length;
-  const publishable = catalog.publishable_count ?? checks.filter((check) => check.publishable).length;
-  return panel("Publish Readiness", [
-    el("div", { className: "inline-list" }, [
-      badge(catalog.publishable ? "ok" : "warn", catalog.publishable ? "publishable" : "blocked"),
-      badge(null, `${total} crates`),
-      checks.length ? badge(null, "dependency ordered") : null,
-      publishable ? badge("ok", `${publishable} publishable`) : null,
-      blocked ? badge("warn", `${blocked} blocked`) : null,
-      catalog.commands?.length ? badge(null, `${catalog.commands.length} commands`) : null,
-      catalog.issues?.length ? badge("warn", `${catalog.issues.length} issues`) : null,
-    ].filter(Boolean)),
-    catalog.commands?.length ? sectionTitle("Commands") : null,
-    catalog.commands?.length ? commandList(catalog.commands) : null,
-    checks.length
-      ? table(["Order", "Workspace", "Workflow", "Package", "Version", "Status", "Internal Deps", "Command", "Manifest", "Issues"], checks.map((check, index) => [
-        String(index + 1),
-        check.workspace || "",
-        check.workflow_id || "",
-        check.package || "",
-        check.version || "",
-        check.publishable ? "publishable" : "blocked",
-        (check.internal_dependencies || []).join(", "),
-        (check.command || []).join(" "),
-        check.manifest || "",
-        (check.issues || []).join("; "),
-      ]))
-      : emptyNode("No workflow crates"),
-  ]);
-}
-
-function releaseReportView(report, options = {}) {
+) {
   const checks = report.checks || [];
   const failed = report.failed ?? checks.filter((check) => check.status === "failed").length;
   const planned = report.planned ?? checks.filter((check) => check.status === "planned").length;
@@ -1734,49 +1458,6 @@ function releaseReportView(report, options = {}) {
       ]))
       : emptyNode("No release checks"),
   ].filter(Boolean));
-}
-
-function releaseCommandChecks(checks) {
-  return checks.filter((check) => check.command?.length);
-}
-
-function releaseCommandList(checks) {
-  return el("div", { className: "command-list" }, checks.map((check) =>
-    el("div", { className: "command-gate" }, [
-      el("div", { className: "inline-list" }, [
-        badge(check.status === "failed" ? "danger" : check.status === "passed" ? "ok" : check.status === "skipped" ? "warn" : null, check.status || ""),
-        badge(null, check.id || "command"),
-      ]),
-      check.message ? el("small", { className: "muted" }, check.message) : null,
-      commandRow(check.command),
-    ].filter(Boolean)),
-  ));
-}
-
-function commandList(commands) {
-  if (!commands.length) {
-    return emptyNode("No commands");
-  }
-  return el("div", { className: "command-list" }, commands.map(commandRow));
-}
-
-function commandRow(command) {
-  const text = Array.isArray(command) ? command.join(" ") : String(command);
-  const output = el("small", { className: "muted" }, "");
-  const copy = el("button", { type: "button" }, "Copy");
-  copy.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      output.textContent = "Copied";
-    } catch (error) {
-      output.textContent = "Copy failed";
-    }
-  });
-  return el("div", { className: "command-row" }, [
-    el("code", {}, text),
-    copy,
-    output,
-  ]);
 }
 
 function renderPatches() {
@@ -2235,50 +1916,6 @@ function renderError(error) {
   els.loopDetail.replaceChildren(node.cloneNode(true));
 }
 
-function panel(title, children) {
-  return el("section", { className: "panel" }, [
-    el("div", { className: "panel-header" }, [el("h3", {}, title)]),
-    el("div", { className: "panel-body stack" }, children),
-  ]);
-}
-
-function sectionTitle(text) {
-  return el("h3", {}, text);
-}
-
-function portList(ports) {
-  if (!ports.length) {
-    return emptyNode("No ports");
-  }
-  return el("div", { className: "port-list" }, ports.map((port) =>
-    el("div", { className: "port-row" }, [
-      el("strong", {}, port.name),
-      el("code", {}, port.type),
-      el("div", {}, [
-        el("div", { className: "inline-list" }, [
-          port.required ? badge("warn", "required") : badge(null, "optional"),
-          port.widget ? badge(null, port.widget) : null,
-          port.artifact_kind ? badge(null, port.artifact_kind) : null,
-          port.model_requirement ? badge(null, port.model_requirement) : null,
-        ].filter(Boolean)),
-        port.description ? el("small", { className: "muted" }, port.description) : null,
-      ].filter(Boolean)),
-    ]),
-  ));
-}
-
-function runtimeList(runtimes) {
-  return el("div", { className: "stack" }, runtimes.map((runtime) =>
-    el("div", { className: "metric" }, [
-      el("strong", {}, runtime.capability),
-      el("span", {}, runtime.engine || runtime.id),
-      el("div", { className: "inline-list" }, runtime.executors.map((executor) =>
-        badge(executor.available ? "ok" : "warn", `${executor.kind}:${executor.id}`),
-      )),
-    ]),
-  ));
-}
-
 function list(items) {
   return el("ul", {}, items.map((item) => el("li", {}, linkRunIds(String(item)))));
 }
@@ -2296,70 +1933,4 @@ function linkRunIds(text) {
     });
     return button;
   });
-}
-
-function metric(label, value) {
-  return el("div", { className: "metric" }, [
-    el("span", {}, label),
-    el("strong", {}, value),
-  ]);
-}
-
-function table(headers, rows) {
-  return el("div", { className: "table-wrap" }, [
-    el("table", {}, [
-      el("thead", {}, [el("tr", {}, headers.map((header) => el("th", {}, header)))]),
-      el("tbody", {}, rows.map((row) => el("tr", {}, row.map((cell) => {
-        const value = cell instanceof Node ? cell : String(cell);
-        return el("td", {}, value);
-      })))),
-    ]),
-  ]);
-}
-
-function jsonBlock(value) {
-  return el("pre", {}, JSON.stringify(value, null, 2));
-}
-
-function badge(kind, text) {
-  return el("span", { className: ["badge", kind].filter(Boolean).join(" ") }, text);
-}
-
-function option(value, text) {
-  const option = document.createElement("option");
-  option.value = value;
-  option.textContent = text;
-  return option;
-}
-
-function kv(key, value) {
-  return el("div", {}, [el("dt", {}, key), el("dd", {}, value)]);
-}
-
-function emptyNode(text) {
-  const node = els.emptyTemplate.content.firstElementChild.cloneNode(true);
-  node.querySelector("h2").textContent = text;
-  node.querySelector("p").textContent = "";
-  return node;
-}
-
-function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  Object.entries(attrs).forEach(([key, value]) => {
-    if (value === undefined || value === null) {
-      return;
-    }
-    if (key === "className") {
-      node.className = value;
-    } else if (key === "htmlFor") {
-      node.htmlFor = value;
-    } else {
-      node.setAttribute(key, value);
-    }
-  });
-  const childList = Array.isArray(children) ? children : [children];
-  childList.filter((child) => child !== null && child !== undefined).forEach((child) => {
-    node.append(child instanceof Node ? child : document.createTextNode(String(child)));
-  });
-  return node;
 }
