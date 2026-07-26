@@ -40,7 +40,16 @@ export class ApiError extends Error {
 
 async function readResponse(response) {
   const text = await response.text();
-  const body = text ? JSON.parse(text) : {};
+  let body = {};
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      // Non-JSON bodies (proxy error pages, plain-text panics) must not
+      // mask the HTTP status behind a SyntaxError.
+      body = { message: text.slice(0, 500) };
+    }
+  }
   if (!response.ok) {
     throw new ApiError(body, response.status);
   }

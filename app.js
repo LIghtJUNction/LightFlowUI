@@ -786,7 +786,11 @@ function patchValue(input) {
   if (!value) {
     return undefined;
   }
-  return JSON.parse(value);
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    throw new Error(`patch must be valid JSON: ${error.message}`);
+  }
 }
 
 async function refreshHistory() {
@@ -988,7 +992,14 @@ function fieldValue(port, input) {
     return undefined;
   }
   if (port.type === "json") {
-    return input.value ? JSON.parse(input.value) : null;
+    if (!input.value) {
+      return null;
+    }
+    try {
+      return JSON.parse(input.value);
+    } catch (error) {
+      throw new Error(`input ${port.name} must be valid JSON: ${error.message}`);
+    }
   }
   if (port.type === "integer") {
     return input.value ? Number.parseInt(input.value, 10) : null;
