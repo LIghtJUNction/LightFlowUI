@@ -79,7 +79,7 @@ function runFilterSummary() {
   ].filter(Boolean);
 }
 
-function selectRun(runId, rerenderList = true) {
+export async function selectRun(runId, rerenderList = true) {
   state.selectedRunId = runId;
   if (rerenderList) {
     renderRuns();
@@ -217,7 +217,7 @@ function artifactFilterSummary() {
   ].filter(Boolean);
 }
 
-function focusArtifacts(filters) {
+async function focusArtifacts(filters) {
   state.artifactFilters = {
     run: filters.run || "",
     workflow: filters.workflow || "",

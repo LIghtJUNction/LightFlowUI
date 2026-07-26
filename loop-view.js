@@ -58,7 +58,43 @@ export function renderLoop() {
   els.loopDetail.replaceChildren(el("div", { className: "stack" }, children));
 }
 
-function loopReportView(report, options = {}
+function loopReportView(report, options = {}) {
+  const checks = report.checks || [];
+  const failed = report.failed ?? checks.filter((check) => check.status === "failed").length;
+  const warning = report.warnings ?? checks.filter((check) => check.status === "warning").length;
+  const passed = report.passed ?? checks.filter((check) => check.status === "passed").length;
+  const body = [
+    el("div", { className: "inline-list" }, [
+      badge(report.valid ? "ok" : "danger", report.valid ? "valid" : "blocked"),
+      report.workflow_id ? badge(null, report.workflow_id) : badge(null, "project"),
+      badge("ok", `${passed} passed`),
+      warning ? badge("warn", `${warning} warning`) : null,
+      failed ? badge("danger", `${failed} failed`) : null,
+      report.issues?.length ? badge("danger", `${report.issues.length} issues`) : null,
+      report.warning_messages?.length ? badge("warn", `${report.warning_messages.length} warnings`) : null,
+    ].filter(Boolean)),
+    el("div", { className: "meta-grid" }, [
+      metric("Project", report.project_root || ""),
+      metric("Workflow", report.workflow_id || "all workflows"),
+      report.replay_run_id ? kv("Replay Run", renderRunLinks(report.replay_run_id)) : null,
+      metric("Checks", String(checks.length)),
+      metric("Next Commands", String(report.next_commands?.length || 0)),
+    ].filter(Boolean)),
+    report.issues?.length ? linkedList(report.issues) : null,
+    report.warning_messages?.length ? linkedList(report.warning_messages) : null,
+    sectionTitle("Checks"),
+    loopCheckTable(checks),
+  ];
+  if (options.compact && report.workflow_id && report.next_commands?.length) {
+    body.push(sectionTitle("Next Commands"), commandList(report.next_commands));
+  } else if (!options.compact) {
+    body.push(sectionTitle("Next Commands"), commandList(report.next_commands || []));
+  }
+  if (options.compact) {
+    return el("div", { className: "stack" }, body.filter(Boolean));
+  }
+  return panel("Local Workflow Loop", body.filter(Boolean));
+}
 
 function loopCheckTable(checks) {
   if (!checks.length) {
@@ -197,7 +233,52 @@ function publishCatalogView(catalog) {
   ]);
 }
 
-function releaseReportView(report, options = {}
+function releaseReportView(report, options = {}) {
+  const checks = report.checks || [];
+  const failed = report.failed ?? checks.filter((check) => check.status === "failed").length;
+  const planned = report.planned ?? checks.filter((check) => check.status === "planned").length;
+  const passed = report.passed ?? checks.filter((check) => check.status === "passed").length;
+  const warning = report.warning_count ?? checks.filter((check) => check.status === "warning").length;
+  const skipped = report.skipped ?? checks.filter((check) => check.status === "skipped").length;
+  const review = checks.filter((check) => check.kind === "review").length;
+  const commandChecks = releaseCommandChecks(checks);
+  return panel("Release Readiness", [
+    el("div", { className: "inline-list" }, [
+      badge(report.valid ? "ok" : "danger", report.valid ? "valid" : "blocked"),
+      badge(report.dry_run ? null : "warn", report.dry_run ? "dry run" : "apply"),
+      report.workflow_id ? badge(null, report.workflow_id) : null,
+      review ? badge(null, `${review} review`) : null,
+      passed ? badge("ok", `${passed} passed`) : null,
+      warning ? badge("warn", `${warning} warning`) : null,
+      planned ? badge(null, `${planned} planned`) : null,
+      skipped ? badge("warn", `${skipped} skipped`) : null,
+      failed ? badge("danger", `${failed} failed`) : null,
+      report.issues?.length ? badge("danger", `${report.issues.length} issues`) : null,
+      report.warnings?.length ? badge("warn", `${report.warnings.length} warnings`) : null,
+    ].filter(Boolean)),
+    options.compact ? null : el("div", { className: "meta-grid" }, [
+      metric("Project", report.project_root || ""),
+      metric("Workflow", report.workflow_id || ""),
+      metric("Checks", String(checks.length)),
+    ]),
+    report.issues?.length ? linkedList(report.issues) : null,
+    report.warnings?.length ? linkedList(report.warnings) : null,
+    commandChecks.length ? sectionTitle("Command Gates") : null,
+    commandChecks.length ? releaseCommandList(commandChecks) : null,
+    checks.length
+      ? table(["Status", "Kind", "Gate", "Message", "Details", "Count", "Command", "Path"], checks.map((check) => [
+        check.status || "",
+        check.kind || "",
+        check.id || "",
+        check.message || "",
+        (check.details || []).join("\n"),
+        check.count === undefined ? "" : String(check.count),
+        (check.command || []).join(" "),
+        check.path || "",
+      ]))
+      : emptyNode("No release checks"),
+  ].filter(Boolean));
+}
 
 function releaseCommandChecks(checks) {
   return checks.filter((check) => check.command?.length);

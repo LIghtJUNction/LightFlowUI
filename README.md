@@ -21,6 +21,13 @@ Check the API contract used by the static client:
 node smoke.mjs http://127.0.0.1:5174 lightflow.text_plan
 ```
 
+Parse every module in ES-module mode (catches module-only syntax errors that
+`node --check` misses):
+
+```bash
+node --experimental-vm-modules parse-check.mjs
+```
+
 ## Scope
 
 - Node catalog and node detail from `/nodes`.
