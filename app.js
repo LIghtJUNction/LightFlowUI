@@ -691,7 +691,26 @@ function runForm(node) {
       }
       await refreshHistory();
     } catch (error) {
-      result.replaceChildren(el("pre", {}, error.message));
+      const details = {
+        message: error.message,
+      };
+      if (error.run_id) {
+        details.run_id = error.run_id;
+        state.selectedRunId = error.run_id;
+      }
+      if (error.run_dir) {
+        details.run_dir = error.run_dir;
+      }
+      if (error.trace_path) {
+        details.trace_path = error.trace_path;
+      }
+      if (error.code) {
+        details.code = error.code;
+      }
+      result.replaceChildren(jsonBlock(details));
+      if (error.run_id) {
+        await refreshHistory();
+      }
     }
   });
   return form;
