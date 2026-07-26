@@ -273,6 +273,16 @@ async function runReplayCheck(runId) {
     requireBoolean(body, "removed");
     requireEqual(body, "removed", true);
   });
+  await runPostCheck("run prune dry-run", "/runs/prune", { keep: 0 }, (body) => {
+    requireBoolean(body, "dry_run");
+    requireEqual(body, "dry_run", true);
+    requireNumber(body, "total");
+    requireNumber(body, "kept");
+    requireNumber(body, "pruned");
+    requireNumber(body, "freed_bytes");
+    requireArray(body, "pruned_run_ids");
+    requireArray(body, "issues");
+  });
 }
 
 async function runPostCheck(name, path, requestBody, validate) {
